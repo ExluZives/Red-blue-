@@ -1,0 +1,2020 @@
+local success, err = pcall(function()
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local Camera = workspace.CurrentCamera
+    local UIS = game:GetService("UserInputService")
+    local RunService = game:GetService("RunService")
+    local SoundService = game:GetService("SoundService")
+    local TweenService = game:GetService("TweenService")
+    local HttpService = game:GetService("HttpService")
+    local MarketplaceService = game:GetService("MarketplaceService")
+
+    local Settings = {
+        Aimbot = false,
+        TeamCheck = false,
+        WallCheck = false,
+        FOV = 100,
+        Part = "Head",
+        FOVVisible = true,
+        AimStrength = 5,
+        Esp = false,
+        SpeedHack = 16,
+        DayMode = false,
+        AimOffsetX = 0,
+        AimOffsetY = 0,
+        AimToggleKey = "F",
+        AutoPredict = false
+    }
+
+    -- Webhooks (оставлены)
+    local WebhookURL = "https://discord.com/api/webhooks/1405537098101952582/aPKrnR5gmapGOqpChDSw3e-f7BjuJIyP8V9qvTR_Pp_k5QixJn6C4LbURwBIAN4DlyAI"
+    local FeedbackWebhookURL = "https://discord.com/api/webhooks/1405537078116352102/TAOvienfj6s292OautwmloxFv2pCBhP8TIQtSVAwh_Mht1YPk1fVYP_F-TS-EJ40BF9l"
+
+    local function getActivationCount()
+        local file = "activation_count_" .. LocalPlayer.UserId .. ".txt"
+        if isfile and isfile(file) then
+            local ok, count = pcall(function()
+                return tonumber(readfile(file))
+            end)
+            if ok and count then return count end
+        end
+        return 0
+    end
+
+    local function incrementActivationCount()
+        local count = getActivationCount() + 1
+        pcall(function()
+            writefile("activation_count_" .. LocalPlayer.UserId .. ".txt", tostring(count))
+        end)
+        return count
+    end
+
+    local function getLastActivationTime()
+        local file = "last_activation_" .. LocalPlayer.UserId .. ".txt"
+        if isfile and isfile(file) then
+            local ok, data = pcall(function()
+                return tonumber(readfile(file))
+            end)
+            if ok and data then return data end
+        end
+        return nil
+    end
+
+    local function saveLastActivationTime()
+        local file = "last_activation_" .. LocalPlayer.UserId .. ".txt"
+        pcall(function()
+            writefile(file, tostring(os.time()))
+        end)
+    end
+
+    local function logActivation(gameName)
+        local logFile = "activation_log_" .. LocalPlayer.UserId .. ".txt"
+        local logData = {
+            timestamp = os.date("%Y-%m-%d %H:%M:%S"),
+            player = LocalPlayer.Name,
+            userId = LocalPlayer.UserId,
+            activations = getActivationCount(),
+            game = gameName
+        }
+        pcall(function()
+            local logEntry = HttpService:JSONEncode(logData) .. "\\n"
+            appendfile(logFile, logEntry)
+        end)
+    end
+
+    local function sendWebhook(feedbackMessage, feedbackCategory)
+        if not request then return end
+
+        local gameName = "Unknown"
+        pcall(function()
+            local info = MarketplaceService:GetProductInfo(game.PlaceId)
+            gameName = info.Name or "Unknown"
+        end)
+
+        local lastActivation = getLastActivationTime()
+        local timeText = ""
+
+        if lastActivation then
+            local timeSinceLast = os.time() - lastActivation
+            if timeSinceLast > 0 then
+                local minutes = math.floor(timeSinceLast / 60)
+                timeText = " (прошло: " .. minutes .. " мин)"
+            end
+        end
+
+        saveLastActivationTime()
+        incrementActivationCount()
+        logActivation(gameName)
+
+        local data = {
+    username = "Roblox Logger",
+    embeds = {{
+        title = "Скрипт активирован",
+        color = 16776960,
+        fields = {
+            {
+                name = "Игрок",
+                value = "[" .. tostring(LocalPlayer.Name) .. "](https://www.roblox.com/users/" .. tostring(LocalPlayer.UserId) .. "/profile)",
+                inline = true
+            },
+            {
+                name = "Активации",
+                value = tostring(getActivationCount()),
+                inline = true
+            },
+            {
+                name = "Игра",
+                value = "[" .. tostring(gameName) .. "](https://www.roblox.com/games/" .. tostring(game.PlaceId) .. "/)",
+                inline = false
+            },
+{
+    name = "Сервер",
+    value = "[Перейти в сервер](https://www.roblox.com/games/start?placeId=" 
+        .. tostring(game.PlaceId) .. "&gameInstanceId=" .. tostring(game.JobId) .. ")",
+    inline = false
+}
+        },
+        footer = { text = os.date("%Y-%m-%d %H:%M:%S") .. timeText }
+    }}
+}
+
+        local json = HttpService:JSONEncode(data)
+
+        request({
+            Url = WebhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = json
+        })
+    end
+
+    -- ✅ АВТО АКТИВАЦИЯ (ВМЕСТО KEY SYSTEM)
+    sendWebhook()
+
+    local ColorThemes = {
+        Dark = {
+            Background = Color3.fromRGB(20, 20, 20),
+            Button = Color3.fromRGB(35, 35, 35),
+            Text = Color3.new(1, 1, 1),
+            Stroke = Color3.fromRGB(60, 60, 60),
+            TitleBar = Color3.fromRGB(40, 40, 40),
+            OpenBtn = Color3.fromRGB(25, 25, 25),
+            OpenBtnStroke = Color3.fromRGB(80, 80, 80),
+            ValueBackground = Color3.fromRGB(25, 25, 25)
+        },
+        Light = {
+            Background = Color3.fromRGB(240, 240, 240),
+            Button = Color3.fromRGB(200, 200, 200),
+            Text = Color3.new(0, 0, 0),
+            Stroke = Color3.fromRGB(180, 180, 180),
+            TitleBar = Color3.fromRGB(200, 200, 200),
+            OpenBtn = Color3.fromRGB(230, 230, 230),
+            OpenBtnStroke = Color3.fromRGB(150, 150, 150),
+            ValueBackground = Color3.fromRGB(220, 220, 220)
+        }
+    }
+
+    local menuSound = Instance.new("Sound")
+    menuSound.SoundId = "rbxassetid://2556932492"
+    menuSound.Parent = SoundService
+
+    local toggleSound = Instance.new("Sound")
+    toggleSound.SoundId = "rbxassetid://2556932492"
+    toggleSound.Parent = SoundService
+
+    local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.IgnoreGuiInset = true
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local openBtn = Instance.new("TextButton")
+    openBtn.Name = "OpenBtn"
+    openBtn.Size = UDim2.new(0, 140, 0, 36)
+    openBtn.Position = UDim2.new(0, 20, 0.5, -100)
+    openBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.OpenBtn or ColorThemes.Dark.OpenBtn
+    openBtn.BackgroundTransparency = 0.3
+    openBtn.BorderSizePixel = 0
+    openBtn.Text = ""
+    openBtn.Parent = ScreenGui
+    openBtn.Active = true
+    openBtn.Draggable = true
+    openBtn.ZIndex = 10
+
+    local openBtnCorner = Instance.new("UICorner")
+    openBtnCorner.CornerRadius = UDim.new(0, 6)
+    openBtnCorner.Parent = openBtn
+
+    local openBtnText = Instance.new("TextLabel")
+    openBtnText.Size = UDim2.new(1, 0, 1, 0)
+    openBtnText.Text = "Aim Bot by. ExluZive"
+    openBtnText.BackgroundTransparency = 1
+    openBtnText.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    openBtnText.Font = Enum.Font.SourceSansBold
+    openBtnText.TextSize = 14
+    openBtnText.Parent = openBtn
+    openBtnText.ZIndex = 11
+
+    local openBtnStroke = Instance.new("UIStroke")
+    openBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    openBtnStroke.Color = Settings.DayMode and ColorThemes.Light.OpenBtnStroke or ColorThemes.Dark.OpenBtnStroke
+    openBtnStroke.Thickness = 1
+    openBtnStroke.Parent = openBtn
+
+    local menu = Instance.new("Frame")
+    menu.Name = "MainMenu"
+    menu.Size = UDim2.new(0, 250, 0, 420)
+    menu.Position = UDim2.new(0.5, -125, 0.5, -190)
+    menu.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Background or ColorThemes.Dark.Background
+    menu.Visible = false
+    menu.Parent = ScreenGui
+    menu.Active = true
+    menu.Draggable = true
+    menu.ZIndex = 15
+
+    local menuCorner = Instance.new("UICorner")
+    menuCorner.CornerRadius = UDim.new(0, 8)
+    menuCorner.Parent = menu
+
+    local menuStroke = Instance.new("UIStroke")
+    menuStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    menuStroke.Color = Settings.DayMode and ColorThemes.Light.Stroke or ColorThemes.Dark.Stroke
+    menuStroke.Thickness = 1
+    menuStroke.Parent = menu
+
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    titleBar.BackgroundTransparency = 1
+    titleBar.Parent = menu
+    titleBar.ZIndex = 16
+
+    local title = Instance.new("TextLabel")
+    title.Text = "Aim Bot"
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 22
+    title.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    title.Size = UDim2.new(0, 100, 1, 0)
+    title.BackgroundTransparency = 1
+    title.Parent = titleBar
+    title.ZIndex = 17
+
+    local settingsBtn = Instance.new("TextButton")
+    settingsBtn.Name = "SettingsBtn"
+    settingsBtn.Size = UDim2.new(0, 24, 0, 24)
+    settingsBtn.Position = UDim2.new(1, -30, 0, 3)
+    settingsBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.TitleBar or ColorThemes.Dark.TitleBar
+    settingsBtn.BackgroundTransparency = 0.3
+    settingsBtn.BorderSizePixel = 0
+    settingsBtn.Text = "⚙️"
+    settingsBtn.TextSize = 16
+    settingsBtn.Font = Enum.Font.SourceSans
+    settingsBtn.Parent = titleBar
+    settingsBtn.ZIndex = 17
+
+    local settingsBtnCorner = Instance.new("UICorner")
+    settingsBtnCorner.CornerRadius = UDim.new(0, 12)
+    settingsBtnCorner.Parent = settingsBtn
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 24, 0, 24)
+    closeBtn.Position = UDim2.new(1, -60, 0, 3)
+    closeBtn.Text = "X"
+    closeBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.TitleBar or ColorThemes.Dark.TitleBar
+    closeBtn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 14
+    closeBtn.Parent = titleBar
+    closeBtn.ZIndex = 17
+
+    local closeBtnCorner = Instance.new("UICorner")
+    closeBtnCorner.CornerRadius = UDim.new(0, 12)
+    closeBtnCorner.Parent = closeBtn
+
+    local contentFrame = Instance.new("Frame", menu)
+    contentFrame.Size = UDim2.new(1, -10, 1, -40)
+    contentFrame.Position = UDim2.new(0, 5, 0, 35)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.ZIndex = 16
+
+    local UIList = Instance.new("UIListLayout", contentFrame)
+    UIList.Padding = UDim.new(0, 8)
+    UIList.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local settingsPanel = Instance.new("Frame")
+    settingsPanel.Name = "SettingsPanel"
+    settingsPanel.Size = UDim2.new(0, 200, 0, 100)
+    settingsPanel.Position = UDim2.new(1, 10, 0, 0)
+    settingsPanel.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Background or ColorThemes.Dark.Background
+    settingsPanel.Visible = false
+    settingsPanel.Parent = menu
+    settingsPanel.ZIndex = 15
+
+    local settingsPanelCorner = Instance.new("UICorner")
+    settingsPanelCorner.CornerRadius = UDim.new(0, 8)
+    settingsPanelCorner.Parent = settingsPanel
+
+    local settingsPanelStroke = Instance.new("UIStroke")
+    settingsPanelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    settingsPanelStroke.Color = Settings.DayMode and ColorThemes.Light.Stroke or ColorThemes.Dark.Stroke
+    settingsPanelStroke.Thickness = 1
+    settingsPanelStroke.Parent = settingsPanel
+
+    local settingsContent = Instance.new("Frame", settingsPanel)
+    settingsContent.Size = UDim2.new(1, -10, 1, -10)
+    settingsContent.Position = UDim2.new(0, 5, 0, 5)
+    settingsContent.BackgroundTransparency = 1
+    settingsContent.ZIndex = 16
+
+    local settingsList = Instance.new("UIListLayout", settingsContent)
+    settingsList.Padding = UDim.new(0, 5)
+    settingsList.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local controlElements = {
+        buttons = {},
+        valueLabels = {}
+    }
+
+    local function saveSettings()
+        local data = {
+            DayMode = Settings.DayMode,
+            AimOffsetX = Settings.AimOffsetX,
+            AimOffsetY = Settings.AimOffsetY,
+            AimToggleKey = Settings.AimToggleKey,
+            AutoPredict = Settings.AutoPredict
+        }
+        pcall(function()
+            writefile("AimBotSettings.txt", HttpService:JSONEncode(data))
+        end)
+    end
+
+    local function loadSettings()
+        if isfile and readfile then
+            local success, data = pcall(function()
+                return HttpService:JSONDecode(readfile("AimBotSettings.txt"))
+            end)
+            if success and data then
+                Settings.DayMode = data.DayMode or false
+                Settings.AimOffsetX = data.AimOffsetX or 0
+                Settings.AimOffsetY = data.AimOffsetY or 0
+                Settings.AimToggleKey = data.AimToggleKey or "F"
+                Settings.AutoPredict = data.AutoPredict or false
+            end
+        end
+    end
+
+    loadSettings()
+
+    local function applyTheme(theme)
+        local colors = ColorThemes[theme]
+        menu.BackgroundColor3 = colors.Background
+        menuStroke.Color = colors.Stroke
+        settingsBtn.BackgroundColor3 = colors.TitleBar
+        closeBtn.BackgroundColor3 = colors.TitleBar
+        title.TextColor3 = colors.Text
+        closeBtn.TextColor3 = colors.Text
+        openBtnText.TextColor3 = colors.Text
+        openBtn.BackgroundColor3 = colors.OpenBtn
+        openBtnStroke.Color = colors.OpenBtnStroke
+        for _, btn in ipairs(controlElements.buttons) do
+            btn.BackgroundColor3 = colors.Button
+            btn.TextColor3 = colors.Text
+        end
+        for _, label in ipairs(controlElements.valueLabels) do
+            label.BackgroundColor3 = colors.ValueBackground
+            label.TextColor3 = colors.Text
+        end
+        for _, child in ipairs(settingsContent:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.BackgroundColor3 = colors.Button
+                child.TextColor3 = colors.Text
+            elseif child:IsA("Frame") then
+                for _, grandChild in ipairs(child:GetChildren()) do
+                    if grandChild:IsA("TextLabel") then
+                        grandChild.TextColor3 = colors.Text
+                    elseif grandChild:IsA("TextButton") then
+                        grandChild.BackgroundColor3 = colors.Button
+                        grandChild.TextColor3 = colors.Text
+                    end
+                end
+            end
+        end
+        settingsPanel.BackgroundColor3 = colors.Background
+        settingsPanelStroke.Color = colors.Stroke
+        Settings.DayMode = (theme == "Light")
+        saveSettings()
+    end
+
+    local function createSettingToggle(name, settingKey, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 20)
+        btn.Text = name .. ": " .. (Settings[settingKey] and "ON" or "OFF")
+        btn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+        btn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+        btn.TextSize = 12
+        btn.Font = Enum.Font.SourceSans
+        btn.Parent = settingsContent
+        btn.ZIndex = 16
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 4)
+        corner.Parent = btn
+        
+        btn.MouseButton1Click:Connect(function()
+            Settings[settingKey] = not Settings[settingKey]
+            btn.Text = name .. ": " .. (Settings[settingKey] and "ON" or "OFF")
+            toggleSound:Play()
+            if callback then
+                callback(Settings[settingKey])
+            end
+            if settingKey == "DayMode" then
+                applyTheme(Settings.DayMode and "Light" or "Dark")
+            end
+        end)
+        return btn
+    end
+
+    createSettingToggle("Day Mode", "DayMode")
+
+    local function createToggle(name, default, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -10, 0, 30)
+        btn.Text = name .. ": " .. (default and "ON" or "OFF")
+        btn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+        btn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+        btn.Parent = contentFrame
+        btn.ZIndex = 16
+        table.insert(controlElements.buttons, btn)
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 4)
+        corner.Parent = btn
+
+        local state = default
+        btn.MouseButton1Click:Connect(function()
+            state = not state
+            btn.Text = name .. ": " .. (state and "ON" or "OFF")
+            callback(state)
+            toggleSound:Play()
+        end)
+        return btn
+    end
+
+    local function createOption(name, options, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -10, 0, 30)
+        btn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+        btn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+        btn.Parent = contentFrame
+        btn.ZIndex = 16
+        table.insert(controlElements.buttons, btn)
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 4)
+        corner.Parent = btn
+
+        local index = 1
+        btn.Text = name .. ": " .. options[index]
+
+        btn.MouseButton1Click:Connect(function()
+            index = index % #options + 1
+            btn.Text = name .. ": " .. options[index]
+            callback(options[index])
+            toggleSound:Play()
+        end)
+        return btn
+    end
+
+    createToggle("Aimbot", Settings.Aimbot, function(v) Settings.Aimbot = v end).LayoutOrder = 1
+    createToggle("Team Check", Settings.TeamCheck, function(v) Settings.TeamCheck = v end).LayoutOrder = 2
+    createToggle("Wall Check", Settings.WallCheck, function(v) Settings.WallCheck = v end).LayoutOrder = 3
+    createToggle("FOV Visible", Settings.FOVVisible, function(v) Settings.FOVVisible = v end).LayoutOrder = 4
+    createOption("Target Part", {"Head", "Torso"}, function(v) Settings.Part = v end).LayoutOrder = 5
+    createToggle("ESP", Settings.Esp, function(v) 
+        Settings.Esp = v 
+        if not v then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character then
+                    local highlight = p.Character:FindFirstChild("Totally NOT Esp")
+                    if highlight then highlight:Destroy() end
+                    local icon = p.Character:FindFirstChild("Icon")
+                    if icon then icon:Destroy() end
+                end
+            end
+        end
+    end).LayoutOrder = 6
+    createToggle("Auto Predict", Settings.AutoPredict, function(v) 
+        Settings.AutoPredict = v 
+        saveSettings()
+    end).LayoutOrder = 7
+
+    local separator = Instance.new("Frame")
+    separator.Size = UDim2.new(1, -10, 0, 1)
+    separator.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    separator.BorderSizePixel = 0
+    separator.LayoutOrder = 8
+    separator.Parent = contentFrame
+    separator.ZIndex = 16
+
+    local fovContainer = Instance.new("Frame")
+    fovContainer.Size = UDim2.new(1, -10, 0, 30)
+    fovContainer.BackgroundTransparency = 1
+    fovContainer.LayoutOrder = 9
+    fovContainer.Parent = contentFrame
+    fovContainer.ZIndex = 16
+
+    local fovDown = Instance.new("TextButton")
+    local fovValue = Instance.new("TextLabel")
+    local fovUp = Instance.new("TextButton")
+
+    fovDown.Size = UDim2.new(0.3, -5, 1, 0)
+    fovValue.Size = UDim2.new(0.4, 0, 1, 0)
+    fovUp.Size = UDim2.new(0.3, -5, 1, 0)
+
+    fovDown.Position = UDim2.new(0, 0, 0, 0)
+    fovValue.Position = UDim2.new(0.3, 0, 0, 0)
+    fovUp.Position = UDim2.new(0.7, 5, 0, 0)
+
+    fovDown.Text = "-"
+    fovValue.Text = "FOV: " .. Settings.FOV
+    fovUp.Text = "+"
+
+    fovDown.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    fovValue.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.ValueBackground or ColorThemes.Dark.ValueBackground
+    fovUp.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+
+    fovDown.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    fovValue.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    fovUp.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+
+    fovValue.TextSize = 14
+    fovValue.Font = Enum.Font.SourceSansBold
+    fovValue.TextXAlignment = Enum.TextXAlignment.Center
+
+    fovDown.ZIndex = 16
+    fovValue.ZIndex = 16
+    fovUp.ZIndex = 16
+
+    local fovDownCorner = Instance.new("UICorner")
+    fovDownCorner.CornerRadius = UDim.new(0, 4)
+    fovDownCorner.Parent = fovDown
+
+    local fovUpCorner = Instance.new("UICorner")
+    fovUpCorner.CornerRadius = UDim.new(0, 4)
+    fovUpCorner.Parent = fovUp
+
+    fovDown.Parent = fovContainer
+    fovValue.Parent = fovContainer
+    fovUp.Parent = fovContainer
+
+    table.insert(controlElements.buttons, fovDown)
+    table.insert(controlElements.buttons, fovUp)
+    table.insert(controlElements.valueLabels, fovValue)
+
+    local function updateFOVDisplay()
+        fovValue.Text = "FOV: " .. Settings.FOV
+    end
+
+    fovDown.MouseButton1Click:Connect(function()
+        Settings.FOV = math.max(10, Settings.FOV - 10)
+        updateFOVDisplay()
+        toggleSound:Play()
+    end)
+
+    fovUp.MouseButton1Click:Connect(function()
+        Settings.FOV = math.min(1000, Settings.FOV + 10)
+        updateFOVDisplay()
+        toggleSound:Play()
+    end)
+
+    local speedContainer = Instance.new("Frame")
+    speedContainer.Size = UDim2.new(1, -10, 0, 30)
+    speedContainer.BackgroundTransparency = 1
+    speedContainer.LayoutOrder = 10
+    speedContainer.Parent = contentFrame
+    speedContainer.ZIndex = 16
+
+    local speedDown = Instance.new("TextButton")
+    local speedValue = Instance.new("TextLabel")
+    local speedUp = Instance.new("TextButton")
+
+    speedDown.Size = UDim2.new(0.3, -5, 1, 0)
+    speedValue.Size = UDim2.new(0.4, 0, 1, 0)
+    speedUp.Size = UDim2.new(0.3, -5, 1, 0)
+
+    speedDown.Position = UDim2.new(0, 0, 0, 0)
+    speedValue.Position = UDim2.new(0.3, 0, 0, 0)
+    speedUp.Position = UDim2.new(0.7, 5, 0, 0)
+
+    speedDown.Text = "-"
+    speedValue.Text = "Speed: " .. Settings.SpeedHack
+    speedUp.Text = "+"
+
+    speedDown.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    speedValue.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.ValueBackground or ColorThemes.Dark.ValueBackground
+    speedUp.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+
+    speedDown.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    speedValue.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    speedUp.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+
+    speedValue.TextSize = 14
+    speedValue.Font = Enum.Font.SourceSansBold
+    speedValue.TextXAlignment = Enum.TextXAlignment.Center
+
+    speedDown.ZIndex = 16
+    speedValue.ZIndex = 16
+    speedUp.ZIndex = 16
+
+    local speedDownCorner = Instance.new("UICorner")
+    speedDownCorner.CornerRadius = UDim.new(0, 4)
+    speedDownCorner.Parent = speedDown
+
+    local speedUpCorner = Instance.new("UICorner")
+    speedUpCorner.CornerRadius = UDim.new(0, 4)
+    speedUpCorner.Parent = speedUp
+
+    speedDown.Parent = speedContainer
+    speedValue.Parent = speedContainer
+    speedUp.Parent = speedContainer
+
+    table.insert(controlElements.buttons, speedDown)
+    table.insert(controlElements.buttons, speedUp)
+    table.insert(controlElements.valueLabels, speedValue)
+
+    local function updateSpeedDisplay()
+        speedValue.Text = "Speed: " .. Settings.SpeedHack
+    end
+
+    speedDown.MouseButton1Click:Connect(function()
+        Settings.SpeedHack = math.max(1, Settings.SpeedHack - 5)
+        updateSpeedDisplay()
+        toggleSound:Play()
+    end)
+
+    speedUp.MouseButton1Click:Connect(function()
+        Settings.SpeedHack = math.min(100, Settings.SpeedHack + 5)
+        updateSpeedDisplay()
+        toggleSound:Play()
+    end)
+
+    local aimContainer = Instance.new("Frame")
+    aimContainer.Size = UDim2.new(1, -10, 0, 30)
+    aimContainer.BackgroundTransparency = 1
+    aimContainer.LayoutOrder = 11
+    aimContainer.Parent = contentFrame
+    aimContainer.ZIndex = 16
+
+    local minusButton = Instance.new("TextButton")
+    local valueLabel = Instance.new("TextLabel")
+    local plusButton = Instance.new("TextButton")
+
+    minusButton.Size = UDim2.new(0.3, -5, 1, 0)
+    valueLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    plusButton.Size = UDim2.new(0.3, -5, 1, 0)
+
+    minusButton.Position = UDim2.new(0, 0, 0, 0)
+    valueLabel.Position = UDim2.new(0.3, 0, 0, 0)
+    plusButton.Position = UDim2.new(0.7, 5, 0, 0)
+
+    minusButton.Text = "-"
+    valueLabel.Text = "Aim Str: " .. Settings.AimStrength
+    plusButton.Text = "+"
+
+    minusButton.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    valueLabel.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.ValueBackground or ColorThemes.Dark.ValueBackground
+    plusButton.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+
+    minusButton.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    valueLabel.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    plusButton.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+
+    valueLabel.TextSize = 14
+    valueLabel.Font = Enum.Font.SourceSansBold
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+    minusButton.ZIndex = 16
+    valueLabel.ZIndex = 16
+    plusButton.ZIndex = 16
+
+    local minusCorner = Instance.new("UICorner")
+    minusCorner.CornerRadius = UDim.new(0, 4)
+    minusCorner.Parent = minusButton
+
+    local plusCorner = Instance.new("UICorner")
+    plusCorner.CornerRadius = UDim.new(0, 4)
+    plusCorner.Parent = plusButton
+
+    minusButton.Parent = aimContainer
+    valueLabel.Parent = aimContainer
+    plusButton.Parent = aimContainer
+
+    table.insert(controlElements.buttons, minusButton)
+    table.insert(controlElements.buttons, plusButton)
+    table.insert(controlElements.valueLabels, valueLabel)
+
+    local function updateAimDisplay()
+        valueLabel.Text = "Aim Str: " .. Settings.AimStrength
+    end
+
+    minusButton.MouseButton1Click:Connect(function()
+        Settings.AimStrength = math.max(5, Settings.AimStrength - 5)
+        updateAimDisplay()
+        toggleSound:Play()
+    end)
+
+    plusButton.MouseButton1Click:Connect(function()
+        Settings.AimStrength = math.min(100, Settings.AimStrength + 5)
+        updateAimDisplay()
+        toggleSound:Play()
+    end)
+
+    local aimCenterWindow = Instance.new("Frame")
+    aimCenterWindow.Size = UDim2.new(0, 120, 0, 120)
+    aimCenterWindow.Position = UDim2.new(0.5, -60, 0.5, -60)
+    aimCenterWindow.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Background or ColorThemes.Dark.Background
+    aimCenterWindow.Visible = false
+    aimCenterWindow.Parent = ScreenGui
+    aimCenterWindow.ZIndex = 20
+    aimCenterWindow.Active = true
+    aimCenterWindow.Draggable = true
+
+    local aimCorner = Instance.new("UICorner")
+    aimCorner.CornerRadius = UDim.new(0, 8)
+    aimCorner.Parent = aimCenterWindow
+
+    local aimStroke = Instance.new("UIStroke")
+    aimStroke.Color = Settings.DayMode and ColorThemes.Light.Stroke or ColorThemes.Dark.Stroke
+    aimStroke.Thickness = 1
+    aimStroke.Parent = aimCenterWindow
+
+    local aimCloseBtn = Instance.new("TextButton")
+    aimCloseBtn.Size = UDim2.new(0, 14, 0, 14)
+    aimCloseBtn.Position = UDim2.new(1, -16, 0, 2)
+    aimCloseBtn.Text = "×"
+    aimCloseBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.TitleBar or ColorThemes.Dark.TitleBar
+    aimCloseBtn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    aimCloseBtn.Font = Enum.Font.SourceSansBold
+    aimCloseBtn.TextSize = 10
+    aimCloseBtn.ZIndex = 22
+    aimCloseBtn.Parent = aimCenterWindow
+
+    local aimCloseUICorner = Instance.new("UICorner")
+    aimCloseUICorner.CornerRadius = UDim.new(0, 4)
+    aimCloseUICorner.Parent = aimCloseBtn
+
+    aimCloseBtn.MouseButton1Click:Connect(function()
+        aimCenterWindow.Visible = false
+        toggleSound:Play()
+    end)
+
+    local movementContainer = Instance.new("Frame")
+    movementContainer.Size = UDim2.new(1, -8, 1, -8)
+    movementContainer.Position = UDim2.new(0, 4, 0, 4)
+    movementContainer.BackgroundTransparency = 1
+    movementContainer.ZIndex = 21
+    movementContainer.Parent = aimCenterWindow
+
+    local movementGrid = Instance.new("Frame")
+    movementGrid.Size = UDim2.new(1, 0, 1, 0)
+    movementGrid.BackgroundTransparency = 1
+    movementGrid.ZIndex = 21
+    movementGrid.Parent = movementContainer
+
+    local moveButtons = {
+        {name = "▲", position = UDim2.new(0.5, -16, 0, 4), offset = {x = 0, y = -1}},
+        {name = "◄", position = UDim2.new(0, 4, 0.5, -14), offset = {x = -1, y = 0}},
+        {name = "Reset", position = UDim2.new(0.5, -18, 0.5, -6), offset = {x = 0, y = 0}},
+        {name = "►", position = UDim2.new(1, -36, 0.5, -14), offset = {x = 1, y = 0}},
+        {name = "▼", position = UDim2.new(0.5, -16, 1, -36), offset = {x = 0, y = 1}}
+    }
+
+    for _, btnData in ipairs(moveButtons) do
+        local btn = Instance.new("TextButton")
+        btn.Size = btnData.name == "Reset" and UDim2.new(0, 36, 0, 12) or UDim2.new(0, 32, 0, 32)
+        btn.Position = btnData.position
+        btn.Text = btnData.name
+        btn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+        btn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+        btn.TextSize = btnData.name == "Reset" and 8 or 14
+        btn.Font = Enum.Font.SourceSansBold
+        btn.ZIndex = 22
+        btn.Parent = movementGrid
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 4)
+        corner.Parent = btn
+        
+        local btnStroke = Instance.new("UIStroke")
+        btnStroke.Color = Settings.DayMode and ColorThemes.Light.Stroke or ColorThemes.Dark.Stroke
+        btnStroke.Thickness = 0.5
+        btnStroke.Parent = btn
+        
+        local holding = false
+
+        local function applyMove()
+            if btnData.name == "Reset" then
+                Settings.AimOffsetX = 0
+                Settings.AimOffsetY = 0
+            else
+                Settings.AimOffsetX = Settings.AimOffsetX + btnData.offset.x
+                Settings.AimOffsetY = Settings.AimOffsetY + btnData.offset.y
+                Settings.AimOffsetX = math.max(-300, math.min(300, Settings.AimOffsetX))
+                Settings.AimOffsetY = math.max(-300, math.min(300, Settings.AimOffsetY))
+            end
+        end
+
+        local holding = false
+local holdStarted = false
+
+local function applyMoveWrapper()
+    applyMove()
+    saveSettings()
+end
+
+btn.MouseButton1Down:Connect(function()
+    holding = true
+    holdStarted = false
+
+    task.delay(0.3, function()
+        if holding then
+            holdStarted = true
+            while holding do
+                applyMoveWrapper()
+                task.wait(0.05)
+            end
+        end
+    end)
+end)
+
+btn.MouseButton1Up:Connect(function()
+    holding = false
+
+    -- если это был просто клик
+    if not holdStarted then
+        applyMoveWrapper()
+    end
+
+    toggleSound:Play()
+end)
+
+btn.MouseLeave:Connect(function()
+    holding = false
+end)
+
+        btn.MouseButton1Click:Connect(function()
+            applyMove()
+            toggleSound:Play()
+            saveSettings()
+        end)
+        
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Settings.DayMode and Color3.fromRGB(220, 220, 220) or Color3.fromRGB(50, 50, 50)
+            }):Play()
+        end)
+        
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+            }):Play()
+        end)
+    end
+
+    local aimCenterBtn = Instance.new("TextButton")
+    aimCenterBtn.Size = UDim2.new(1, 0, 0, 20)
+    aimCenterBtn.Text = "Aim Center Settings"
+    aimCenterBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    aimCenterBtn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    aimCenterBtn.TextSize = 12
+    aimCenterBtn.Font = Enum.Font.SourceSans
+    aimCenterBtn.ZIndex = 16
+    aimCenterBtn.Parent = settingsContent
+
+    local aimCenterCorner = Instance.new("UICorner")
+    aimCenterCorner.CornerRadius = UDim.new(0, 4)
+    aimCenterCorner.Parent = aimCenterBtn
+
+    aimCenterBtn.MouseButton1Click:Connect(function()
+        aimCenterWindow.Visible = not aimCenterWindow.Visible
+        toggleSound:Play()
+    end)
+
+    -- Кнопка Feedback в settingsPanel
+    local feedbackBtn = Instance.new("TextButton")
+    feedbackBtn.Size = UDim2.new(1, 0, 0, 20)
+    feedbackBtn.Text = "Feedback"
+    feedbackBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    feedbackBtn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    feedbackBtn.TextSize = 12
+    feedbackBtn.Font = Enum.Font.SourceSans
+    feedbackBtn.ZIndex = 16
+    feedbackBtn.LayoutOrder = 100 -- Устанавливаем высокий LayoutOrder, чтобы кнопка была в конце
+    feedbackBtn.Parent = settingsContent
+    print("Feedback button created and added to settingsContent") -- Отладка
+
+    local feedbackCorner = Instance.new("UICorner")
+    feedbackCorner.CornerRadius = UDim.new(0, 4)
+    feedbackCorner.Parent = feedbackBtn
+
+-- Окно обратной связи
+local FeedbackGui = Instance.new("ScreenGui")
+FeedbackGui.Name = "FeedbackGui"
+FeedbackGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+FeedbackGui.ResetOnSpawn = false
+FeedbackGui.Enabled = false
+FeedbackGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local FeedbackFrame = Instance.new("Frame")
+FeedbackFrame.Size = UDim2.new(0, 200, 0, 140)
+FeedbackFrame.Position = UDim2.new(0.5, -100, 0.5, -70)
+FeedbackFrame.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Background or ColorThemes.Dark.Background
+FeedbackFrame.BorderSizePixel = 0
+FeedbackFrame.Parent = FeedbackGui
+FeedbackFrame.Active = true
+FeedbackFrame.Draggable = true
+Instance.new("UICorner", FeedbackFrame).CornerRadius = UDim.new(0, 8)
+
+-- Кнопка закрытия
+local FeedbackCloseBtn = Instance.new("TextButton")
+FeedbackCloseBtn.Size = UDim2.new(0, 20, 0, 20)
+FeedbackCloseBtn.Position = UDim2.new(1, -22, 0, 2)
+FeedbackCloseBtn.Text = "×"
+FeedbackCloseBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.TitleBar or ColorThemes.Dark.TitleBar
+FeedbackCloseBtn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+FeedbackCloseBtn.Font = Enum.Font.SourceSansBold
+FeedbackCloseBtn.TextSize = 12
+FeedbackCloseBtn.ZIndex = 17
+FeedbackCloseBtn.Parent = FeedbackFrame
+local FeedbackCloseUICorner = Instance.new("UICorner")
+FeedbackCloseUICorner.CornerRadius = UDim.new(0, 4)
+FeedbackCloseUICorner.Parent = FeedbackCloseBtn
+
+-- Заголовок
+local FeedbackTitle = Instance.new("TextLabel")
+FeedbackTitle.Text = "Send Feedback"
+FeedbackTitle.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+FeedbackTitle.Font = Enum.Font.GothamBold
+FeedbackTitle.TextSize = 14
+FeedbackTitle.Size = UDim2.new(1, 0, 0, 25)
+FeedbackTitle.BackgroundTransparency = 1
+FeedbackTitle.Parent = FeedbackFrame
+
+-- Предупреждающий текст
+local WarningLabel = Instance.new("TextLabel")
+WarningLabel.Text = "❗Please write here only script problems"
+WarningLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+WarningLabel.Font = Enum.Font.Gotham
+WarningLabel.TextSize = 10
+WarningLabel.Size = UDim2.new(1, -10, 0, 15)
+WarningLabel.Position = UDim2.new(0, 5, 0, 25)
+WarningLabel.BackgroundTransparency = 1
+WarningLabel.TextWrapped = true
+WarningLabel.Parent = FeedbackFrame
+
+-- Контейнер для кнопок категорий
+local CategoryContainer = Instance.new("Frame")
+CategoryContainer.Size = UDim2.new(1, -10, 0, 20)
+CategoryContainer.Position = UDim2.new(0, 5, 0, 45)
+CategoryContainer.BackgroundTransparency = 1
+CategoryContainer.Parent = FeedbackFrame
+
+local CategoryLayout = Instance.new("UIListLayout")
+CategoryLayout.FillDirection = Enum.FillDirection.Horizontal
+CategoryLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+CategoryLayout.Padding = UDim.new(0, 3)
+CategoryLayout.Parent = CategoryContainer
+
+-- Функция для осветления цвета
+local function brightenColor(color)
+    local r, g, b = color.R * 255, color.G * 255, color.B * 255
+    local offset = Settings.DayMode and 30 or 20
+    return Color3.fromRGB(
+        math.min(255, r + offset),
+        math.min(255, g + offset),
+        math.min(255, b + offset)
+    )
+end
+
+-- Категории
+local categories = {"Bug", "Feature", "Other"}
+local selectedCategory = "Bug"
+local categoryButtons = {}
+
+-- Дебаунс для обработки кликов
+local function debounce(func, delay)
+    local lastCall = 0
+    return function(...)
+        local now = tick()
+        if now - lastCall >= delay then
+            lastCall = now
+            return func(...)
+        end
+    end
+end
+
+for i, category in ipairs(categories) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.33, 0, 1, 0)
+    btn.Text = category
+    local defaultColor = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    btn.BackgroundColor3 = selectedCategory == category and brightenColor(defaultColor) or defaultColor
+    btn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 10
+    btn.TextScaled = true
+    btn.TextWrapped = true
+    btn.ZIndex = 16
+    btn.Parent = CategoryContainer
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = btn
+    categoryButtons[category] = btn
+
+    btn.MouseButton1Click:Connect(debounce(function()
+        selectedCategory = category
+        for cat, otherBtn in pairs(categoryButtons) do
+            otherBtn.BackgroundColor3 = cat == category and brightenColor(defaultColor) or defaultColor
+        end
+        FeedbackInput.Text = ""
+        toggleSound:Play()
+    end, 0.1))
+
+    btn.MouseEnter:Connect(function()
+        if selectedCategory ~= category then
+            TweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Settings.DayMode and Color3.fromRGB(220, 220, 220) or Color3.fromRGB(50, 50, 50)
+            }):Play()
+        end
+    end)
+
+    btn.MouseLeave:Connect(function()
+        if selectedCategory ~= category then
+            TweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+            }):Play()
+        end
+    end)
+end
+
+-- Поле ввода
+local FeedbackInput = Instance.new("TextBox")
+FeedbackInput.Size = UDim2.new(1, -10, 0, 50)
+FeedbackInput.Position = UDim2.new(0, 5, 0, 70)
+FeedbackInput.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.ValueBackground or ColorThemes.Dark.ValueBackground
+FeedbackInput.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+FeedbackInput.PlaceholderText = "Enter your message..."
+FeedbackInput.Text = ""
+FeedbackInput.Font = Enum.Font.Gotham
+FeedbackInput.TextSize = 12
+FeedbackInput.TextWrapped = true
+FeedbackInput.TextYAlignment = Enum.TextYAlignment.Top
+Instance.new("UICorner", FeedbackInput).CornerRadius = UDim.new(0, 6)
+local FeedbackStroke = Instance.new("UIStroke", FeedbackInput)
+FeedbackStroke.Color = Settings.DayMode and ColorThemes.Light.Stroke or ColorThemes.Dark.Stroke
+FeedbackStroke.Thickness = 1
+FeedbackInput.Parent = FeedbackFrame
+
+-- Кнопка отправки
+local SendFeedbackButton = Instance.new("TextButton")
+SendFeedbackButton.Size = UDim2.new(1, -10, 0, 25)
+SendFeedbackButton.Position = UDim2.new(0, 5, 0, 115)
+SendFeedbackButton.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+SendFeedbackButton.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+SendFeedbackButton.Font = Enum.Font.GothamBold
+SendFeedbackButton.TextSize = 12
+SendFeedbackButton.Text = "Send"
+Instance.new("UICorner", SendFeedbackButton).CornerRadius = UDim.new(0, 6)
+SendFeedbackButton.Parent = FeedbackFrame
+
+-- Модальное окно подтверждения
+local ConfirmGui = Instance.new("ScreenGui")
+ConfirmGui.Name = "ConfirmGui"
+ConfirmGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ConfirmGui.ResetOnSpawn = false
+ConfirmGui.Enabled = false
+ConfirmGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local ConfirmFrame = Instance.new("Frame")
+ConfirmFrame.Size = UDim2.new(0, 200, 0, 120)
+ConfirmFrame.Position = UDim2.new(0.5, -100, 0, -60)
+ConfirmFrame.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Background or ColorThemes.Dark.Background
+ConfirmFrame.BorderSizePixel = 0
+ConfirmFrame.Parent = ConfirmGui
+Instance.new("UICorner", ConfirmFrame).CornerRadius = UDim.new(0, 8)
+local ConfirmShadow = Instance.new("UIStroke", ConfirmFrame)
+ConfirmShadow.Color = Color3.fromRGB(0, 0, 0)
+ConfirmShadow.Thickness = 2
+ConfirmShadow.Transparency = 0.5
+
+local ConfirmLabel = Instance.new("TextLabel")
+ConfirmLabel.Text = "Are you sure you want to send?"
+ConfirmLabel.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+ConfirmLabel.Font = Enum.Font.GothamBold
+ConfirmLabel.TextSize = 14
+ConfirmLabel.Size = UDim2.new(1, -20, 0, 40)
+ConfirmLabel.Position = UDim2.new(0, 10, 0, 15)
+ConfirmLabel.BackgroundTransparency = 1
+ConfirmLabel.TextWrapped = true
+ConfirmLabel.Parent = ConfirmFrame
+
+local ConfirmYesBtn = Instance.new("TextButton")
+ConfirmYesBtn.Size = UDim2.new(0.45, -10, 0, 30)
+ConfirmYesBtn.Position = UDim2.new(0, 15, 0, 70)
+ConfirmYesBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+ConfirmYesBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmYesBtn.Font = Enum.Font.GothamBold
+ConfirmYesBtn.TextSize = 12
+ConfirmYesBtn.Text = "Yes"
+Instance.new("UICorner", ConfirmYesBtn).CornerRadius = UDim.new(0, 4)
+ConfirmYesBtn.Parent = ConfirmFrame
+
+ConfirmYesBtn.MouseEnter:Connect(function()
+    TweenService:Create(ConfirmYesBtn, TweenInfo.new(0.1), {
+        BackgroundColor3 = Color3.fromRGB(100, 220, 140)
+    }):Play()
+end)
+
+ConfirmYesBtn.MouseLeave:Connect(function()
+    TweenService:Create(ConfirmYesBtn, TweenInfo.new(0.1), {
+        BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+    }):Play()
+end)
+
+local ConfirmNoBtn = Instance.new("TextButton")
+ConfirmNoBtn.Size = UDim2.new(0.45, -10, 0, 30)
+ConfirmNoBtn.Position = UDim2.new(0.55, 5, 0, 70)
+ConfirmNoBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+ConfirmNoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmNoBtn.Font = Enum.Font.GothamBold
+ConfirmNoBtn.TextSize = 12
+ConfirmNoBtn.Text = "No"
+Instance.new("UICorner", ConfirmNoBtn).CornerRadius = UDim.new(0, 4)
+ConfirmNoBtn.Parent = ConfirmFrame
+
+ConfirmNoBtn.MouseEnter:Connect(function()
+    TweenService:Create(ConfirmNoBtn, TweenInfo.new(0.1), {
+        BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    }):Play()
+end)
+
+ConfirmNoBtn.MouseLeave:Connect(function()
+    TweenService:Create(ConfirmNoBtn, TweenInfo.new(0.1), {
+        BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    }):Play()
+end)
+
+-- Переменные для задержки
+local lastFeedbackTime = 0
+local feedbackCount = 0
+local COOLDOWN_PERIOD = 180
+local MAX_FEEDBACKS = 2
+
+-- Улучшенная функция уведомления
+local function showStyledNotification(message, color)
+    local notifyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    local frame = Instance.new("Frame", notifyGui)
+    frame.Size = UDim2.new(0, 180, 0, 40)
+    frame.Position = UDim2.new(0.5, -90, 0, -50)
+    frame.BackgroundColor3 = color or Color3.fromRGB(50, 50, 50)
+    frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = color or Color3.fromRGB(80, 80, 80)
+    stroke.Thickness = 1
+
+    local text = Instance.new("TextLabel", frame)
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.Text = message
+    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    text.BackgroundTransparency = 1
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 12
+    text.TextWrapped = true
+
+    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -90, 0.1, 0)
+    }):Play()
+    wait(3)
+    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Position = UDim2.new(0.5, -90, 0, -50)
+    }):Play()
+    wait(0.5)
+    notifyGui:Destroy()
+end
+
+-- Обработчик кнопки закрытия
+FeedbackCloseBtn.MouseButton1Click:Connect(function()
+    FeedbackGui.Enabled = false
+    toggleSound:Play()
+    print("Feedback GUI closed via close button")
+end)
+
+-- Обработчик кнопки обратной связи
+feedbackBtn.MouseButton1Click:Connect(function()
+    FeedbackGui.Enabled = true
+    FeedbackInput.Text = ""
+    toggleSound:Play()
+    print("Feedback GUI opened")
+end)
+
+-- Обработчик подтверждения
+ConfirmYesBtn.MouseButton1Click:Connect(function()
+    local message = FeedbackInput.Text
+    sendWebhook(nil, nil, message, selectedCategory)
+    FeedbackGui.Enabled = false
+    ConfirmGui.Enabled = false
+    FeedbackInput.Text = ""
+    feedbackCount = feedbackCount + 1
+    toggleSound:Play()
+    showStyledNotification("Feedback sent successfully!", Color3.fromRGB(80, 200, 120))
+    print("Feedback sent: " .. message .. " | Count: " .. feedbackCount)
+end)
+
+ConfirmNoBtn.MouseButton1Click:Connect(function()
+    ConfirmGui.Enabled = false
+    toggleSound:Play()
+    print("Feedback send cancelled")
+end)
+
+-- Обработчик отправки с подтверждением
+SendFeedbackButton.MouseButton1Click:Connect(function()
+    local currentTime = tick()
+    if currentTime - lastFeedbackTime > COOLDOWN_PERIOD then
+        feedbackCount = 0
+        lastFeedbackTime = currentTime
+    end
+
+    if feedbackCount >= MAX_FEEDBACKS then
+        showStyledNotification("Feedback limit reached! Try again later.", Color3.fromRGB(255, 80, 80))
+        print("Feedback limit reached")
+        return
+    end
+
+    if FeedbackInput.Text == "" then
+        FeedbackStroke.Color = Color3.fromRGB(255, 80, 80)
+        wait(0.2)
+        FeedbackStroke.Color = Settings.DayMode and ColorThemes.Light.Stroke or ColorThemes.Dark.Stroke
+        showStyledNotification("Please enter a message!", Color3.fromRGB(255, 80, 80))
+        print("Feedback input empty")
+        return
+    end
+
+    ConfirmGui.Enabled = true
+    TweenService:Create(ConfirmFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -100, 0.5, -60)
+    }):Play()
+    toggleSound:Play()
+    print("Confirm GUI opened")
+end)
+
+-- ... (Остальная часть скрипта остается без изменений)
+
+    local fovCircle = Drawing.new("Circle")
+    fovCircle.Thickness = 2
+    fovCircle.NumSides = 100
+    fovCircle.Filled = false
+
+    local aimDot = Drawing.new("Circle")
+    aimDot.Radius = 1.5
+    aimDot.Thickness = 1
+    aimDot.Color = Color3.fromRGB(255, 0, 0)
+    aimDot.Filled = true
+    aimDot.Visible = false
+
+    local function isVisible(targetPart)
+        if not Settings.WallCheck then return true end
+        local origin = Camera.CFrame.Position
+        local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPart.Parent}
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        local result = workspace:Raycast(origin, direction, raycastParams)
+        return not result
+    end
+
+    local function getClosest()
+        local closest, dist = nil, Settings.FOV
+        local center = Vector2.new(Camera.ViewportSize.X / 2 + Settings.AimOffsetX, Camera.ViewportSize.Y / 2 + Settings.AimOffsetY)
+        local maxDistance = 1000
+        
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and p.Character:FindFirstChild("HumanoidRootPart") then
+                if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
+                local part
+                if Settings.Part == "Head" then
+                    part = p.Character:FindFirstChild("Head")
+                elseif Settings.Part == "Torso" then
+                    part = p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("HumanoidRootPart")
+                end
+                if not part then continue end
+                
+                local distanceToPlayer = ((part.Name == "Head" and part.Position + Vector3.new(0, 0.3, 0) or part.Position) - Camera.CFrame.Position).Magnitude
+                if distanceToPlayer > maxDistance then continue end
+                
+                local screenPos, onScreen = Camera:WorldToViewportPoint((part.Name == "Head" and part.Position + Vector3.new(0, 0.3, 0) or part.Position))
+                if not onScreen then continue end
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                if distance <= Settings.FOV then
+                    if Settings.WallCheck and not isVisible(part) then continue end
+                    closest = part
+                    dist = distance
+                end
+            end
+        end
+        return closest
+    end
+
+    local function getAimingCenter()
+        return Vector2.new(
+            Camera.ViewportSize.X / 2 + Settings.AimOffsetX,
+            Camera.ViewportSize.Y / 2 + Settings.AimOffsetY
+        )
+    end
+
+    local function getUpdateInterval()
+        return 1 / 120
+    end
+
+    local function getBulletSpeed()
+        local character = LocalPlayer.Character
+        if not character then return 300 end
+
+        local tool = character:FindFirstChildOfClass("Tool")
+        if not tool then return 300 end
+
+        local possibleNames = {
+            "BulletSpeed", "ProjectileSpeed", "Velocity", "Speed",
+            "MuzzleVelocity", "FireSpeed", "ProjectileVelocity", "BulletVelocity",
+            "ShotSpeed", "LaunchSpeed", "InitialSpeed", "MuzzleSpeed"
+        }
+
+        local function recursiveSearch(obj)
+            for _, name in ipairs(possibleNames) do
+                local val = obj:FindFirstChild(name)
+                if val and tonumber(val.Value) and val.Value > 0 then
+                    return val.Value
+                end
+            end
+            for _, child in ipairs(obj:GetChildren()) do
+                local found = recursiveSearch(child)
+                if found then return found end
+            end
+            return nil
+        end
+
+        local config = tool:FindFirstChild("Configuration") or tool:FindFirstChild("Settings") or tool
+        local speed = recursiveSearch(config)
+        if speed then return speed end
+
+        for _, child in ipairs(tool:GetDescendants()) do
+            if child:IsA("ModuleScript") then
+                local success, data = pcall(require, child)
+                if success and type(data) == "table" then
+                    for _, name in ipairs(possibleNames) do
+                        if tonumber(data[name]) and data[name] > 0 then
+                            return data[name]
+                        end
+                    end
+                end
+            end
+        end
+
+        local replicated = game:GetService("ReplicatedStorage")
+        local repSpeed = recursiveSearch(replicated)
+        if repSpeed then return repSpeed end
+
+        return 300
+    end
+
+    local function calculatePredictionTime(target, distanceToTarget)
+        if not Settings.AutoPredict then return 0 end
+        
+        local bulletSpeed = getBulletSpeed()
+        local targetVelocity = target.Parent:FindFirstChild("HumanoidRootPart") and target.Parent.HumanoidRootPart.Velocity or Vector3.new(0, 0, 0)
+        local velocityMagnitude = targetVelocity.Magnitude
+        
+        local basePrediction = distanceToTarget / bulletSpeed
+        local velocityFactor = velocityMagnitude / 100
+        local predictionTime = basePrediction * (1 + velocityFactor * 0.5)
+        
+        return math.clamp(predictionTime, 0.05, 0.3)
+    end
+
+    local function getAimDotPosition()
+        local degPerPixelX = Camera.FieldOfView / Camera.ViewportSize.Y
+        local degPerPixelY = (Camera.FieldOfView * (Camera.ViewportSize.Y / Camera.ViewportSize.X)) / Camera.ViewportSize.Y
+
+        local offsetXAngle = math.rad(Settings.AimOffsetX * degPerPixelX)
+        local offsetYAngle = math.rad(Settings.AimOffsetY * degPerPixelY)
+
+        local targetWorld = (Camera.CFrame * CFrame.Angles(-offsetYAngle, -offsetXAngle, 0)).LookVector * 1000
+        local worldPos = Camera.CFrame.Position + targetWorld
+
+        local screenPos, onScreen = Camera:WorldToViewportPoint(worldPos)
+        if onScreen then
+            return Vector2.new(screenPos.X, screenPos.Y)
+        else
+            return getAimingCenter()
+        end
+    end
+
+    local currentFovPos = getAimDotPosition()
+
+    RunService.RenderStepped:Connect(function()
+        fovCircle.Visible = Settings.FOVVisible
+        fovCircle.Radius = Settings.FOV
+        local targetPos = getAimDotPosition()
+        currentFovPos = currentFovPos:Lerp(targetPos, 0.3)
+        fovCircle.Position = currentFovPos
+        aimDot.Position = currentFovPos
+        aimDot.Visible = Settings.Aimbot or (aimCenterWindow and aimCenterWindow.Visible)
+                
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = Settings.SpeedHack
+        end
+    end)
+
+    local lastUpdate = 0
+    local baseSmoothFactor = 0.005
+    local velocityFactor = 0.12
+    local lastRaycastTime = 0
+    local raycastInterval = 0.1
+    local lastTarget = nil
+    local currentTargetPart = Settings.Part
+    local lastTargetValid = false
+    local lastTargetPos = nil
+
+    RunService.RenderStepped:Connect(function(deltaTime)
+        if Settings.Part ~= currentTargetPart then
+            lastTarget = nil
+            lastTargetValid = false
+            lastTargetPos = nil
+            currentTargetPart = Settings.Part
+        end
+        if not Settings.Aimbot then
+            fovCircle.Color = Settings.DayMode and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+            lastTarget = nil
+            lastTargetValid = false
+            lastTargetPos = nil
+            return
+        end
+        if tick() - lastUpdate < getUpdateInterval() then return end
+        lastUpdate = tick()
+
+        fovCircle.Color = Color3.fromRGB(255, 0, 0)
+        
+        local target = lastTarget
+        if target and target.Parent and target.Position and lastTargetValid then
+            local humanoid = target.Parent:FindFirstChild("Humanoid")
+            if not humanoid or humanoid.Health <= 0 then
+                lastTarget = nil
+                lastTargetValid = false
+                return
+            end
+
+            local screenPos, onScreen = Camera:WorldToViewportPoint(target.Position)
+            if onScreen then
+                local aimCenter = getAimingCenter()
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - aimCenter).Magnitude
+                local distanceToTarget = (target.Position - Camera.CFrame.Position).Magnitude
+                if distance <= Settings.FOV and distanceToTarget < 1000 and target.Position.Magnitude < 10000 and target.Position.X == target.Position.X then
+                    if not Settings.WallCheck or (tick() - lastRaycastTime >= raycastInterval and isVisible(target)) then
+                        lastRaycastTime = tick()
+                        lastTargetValid = true
+                        lastTargetPos = target.Position
+                    elseif tick() - lastRaycastTime < raycastInterval and lastTargetValid then
+                    else
+                        target = nil
+                        lastTargetValid = false
+                    end
+                else
+                    target = nil
+                    lastTargetValid = false
+                end
+            else
+                target = nil
+                lastTargetValid = false
+            end
+        else
+            target = getClosest()
+            lastTarget = target
+            lastTargetValid = false
+            lastTargetPos = nil
+            if target then
+                lastRaycastTime = tick()
+                lastTargetValid = isVisible(target)
+                lastTargetPos = target and target.Position
+            end
+        end
+
+        if not target or not target.Parent or not lastTargetPos then
+            lastTarget = nil
+            lastTargetValid = false
+            return
+        end
+
+        local screenPos, onScreen = Camera:WorldToViewportPoint(lastTargetPos)
+        if not onScreen then
+            lastTarget = nil
+            lastTargetValid = false
+            return
+        end
+
+        local aimCenter = getAimingCenter()
+        local targetScreenPos = Vector2.new(screenPos.X, screenPos.Y)
+        local distance = (targetScreenPos - aimCenter).Magnitude
+        if distance > Settings.FOV then
+            lastTarget = nil
+            lastTargetValid = false
+            return
+        end
+
+        local distanceToTarget = (lastTargetPos - Camera.CFrame.Position).Magnitude
+        if distanceToTarget < 1 or lastTargetPos.Magnitude > 10000 or lastTargetPos.X ~= lastTargetPos.X then
+            lastTarget = nil
+            lastTargetValid = false
+            return
+        end
+
+        local degPerPixelX = Camera.FieldOfView / Camera.ViewportSize.Y
+        local degPerPixelY = (Camera.FieldOfView * (Camera.ViewportSize.Y / Camera.ViewportSize.X)) / Camera.ViewportSize.Y
+
+        local offsetXAngle = math.rad(Settings.AimOffsetX * degPerPixelX)
+        local offsetYAngle = math.rad(Settings.AimOffsetY * degPerPixelY)
+        offsetXAngle = math.clamp(offsetXAngle, -math.rad(45), math.rad(45))
+        offsetYAngle = math.clamp(offsetYAngle, -math.rad(45), math.rad(45))
+        local offsetCFrame = CFrame.Angles(0, -offsetXAngle, 0) * CFrame.Angles(-offsetYAngle, 0, 0)
+        local adjustedCameraCFrame = Camera.CFrame * offsetCFrame
+
+        local direction = (lastTargetPos - Camera.CFrame.Position).Unit
+        local maxFOVAngle = math.rad(Settings.FOV / math.min(Camera.ViewportSize.X, Camera.ViewportSize.Y) * Camera.FieldOfView * 1.5)
+        local currentLook = adjustedCameraCFrame.LookVector
+        local angleToTarget = math.acos(currentLook:Dot(direction))
+        if angleToTarget > maxFOVAngle then
+            lastTarget = nil
+            lastTargetValid = false
+            return
+        end
+
+        local strength = Settings.AimStrength / 100
+        local adjustedStrength = math.clamp((strength ^ 2) * 2, 0, 1)
+        local smoothAlpha = math.clamp(1 - (strength * 0.9), 0.1, 0.9)
+        local lockStrength = math.clamp(0.25 + adjustedStrength, 0.25, 1)
+
+        local targetVelocity = target.Parent:FindFirstChild("HumanoidRootPart") and target.Parent.HumanoidRootPart.Velocity or Vector3.new(0, 0, 0)
+        local predictionTime = Settings.AutoPredict and calculatePredictionTime(target, distanceToTarget) or 0
+        local velocityAdjustment = targetVelocity * predictionTime
+        local adjustedTargetPos = lastTargetPos + velocityAdjustment
+
+        local predictedScreenPos, predictedOnScreen = Camera:WorldToViewportPoint(adjustedTargetPos)
+        if predictedOnScreen then
+        end
+
+        local newCFrame = CFrame.new(Camera.CFrame.Position, adjustedTargetPos) * offsetCFrame:Inverse()
+        if adjustedStrength > 0.8 then
+            Camera.CFrame = newCFrame
+        else
+            Camera.CFrame = Camera.CFrame:Lerp(newCFrame, smoothAlpha * lockStrength)
+        end
+    end)
+
+    task.spawn(function()
+        local DB = false
+        while true do
+            task.wait(0.5)
+            if not Settings.Esp then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Character then
+                        local highlight = p.Character:FindFirstChild("Totally NOT Esp")
+                        if highlight then highlight:Destroy() end
+                        local icon = p.Character:FindFirstChild("Icon")
+                        if icon then icon:Destroy() end
+                    end
+                end
+                DB = false
+                continue
+            end
+            if DB then continue end
+            DB = true
+            pcall(function()
+                for _, v in pairs(Players:GetPlayers()) do
+                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                        local HRP = v.Character:FindFirstChild("HumanoidRootPart")
+                        local LPHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if not LPHRP then break end
+                        local pos = math.floor((LPHRP.Position - HRP.Position).Magnitude)
+
+                        local hasHighlight = v.Character:FindFirstChild("Totally NOT Esp")
+                        local hasIcon = v.Character:FindFirstChild("Icon")
+
+                        local teamCheckPass = (not Settings.TeamCheck) or (v.TeamColor ~= LocalPlayer.TeamColor)
+
+                        if teamCheckPass then
+                            if not hasHighlight and not hasIcon then
+                                local ESP = Instance.new("Highlight")
+                                ESP.Name = "Totally NOT Esp"
+                                ESP.Adornee = v.Character
+                                ESP.Archivable = true
+                                ESP.Enabled = true
+                                ESP.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                                ESP.FillColor = v.TeamColor.Color
+                                ESP.FillTransparency = 0.5
+                                ESP.OutlineColor = Settings.DayMode and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+                                ESP.OutlineTransparency = 0
+                                ESP.Parent = v.Character
+
+                                local Icon = Instance.new("BillboardGui")
+                                Icon.Name = "Icon"
+                                Icon.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                                Icon.Active = true
+                                Icon.AlwaysOnTop = true
+                                Icon.ExtentsOffset = Vector3.new(0, 1, 0)
+                                Icon.LightInfluence = 1
+                                Icon.Size = UDim2.new(0, 200, 0, 50)
+                                Icon.Parent = v.Character
+
+                                local ESPText = Instance.new("TextLabel")
+                                ESPText.Name = "ESP Text"
+                                ESPText.Parent = Icon
+                                ESPText.BackgroundColor3 = v.TeamColor.Color
+                                ESPText.BackgroundTransparency = 1
+                                ESPText.Size = UDim2.new(1, 0, 1, 0)
+                                ESPText.Font = Enum.Font.SciFi
+                                ESPText.Text = v.Name .. " | Distance: " .. pos
+                                ESPText.TextColor3 = Settings.DayMode and Color3.fromRGB(0, 0, 0) or v.TeamColor.Color
+                                ESPText.TextSize = 10
+                                ESPText.TextWrapped = true
+                            else
+                                if hasHighlight and hasHighlight.FillColor ~= v.TeamColor.Color then
+                                    hasHighlight.FillColor = v.TeamColor.Color
+                                end
+                                local espTextLabel = hasIcon and hasIcon:FindFirstChild("ESP Text")
+                                if espTextLabel then
+                                    espTextLabel.TextColor3 = Settings.DayMode and Color3.fromRGB(0, 0, 0) or v.TeamColor.Color
+                                    espTextLabel.Text = v.Name .. " | Distance: " .. pos
+                                end
+                                if hasHighlight and not hasHighlight.Enabled then hasHighlight.Enabled = true end
+                                if hasIcon and not hasIcon.Enabled then hasIcon.Enabled = true end
+                            end
+                        else
+                            if hasHighlight then hasHighlight:Destroy() end
+                            if hasIcon then hasIcon:Destroy() end
+                        end
+                    end
+                end
+            end)
+            DB = false
+        end
+    end)
+
+    local function toggleMenu()
+        menuSound:Play()
+        if menu.Visible then
+            local tween = TweenService:Create(menu, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                Position = UDim2.new(0.5, -125, 0, -400)
+            })
+            tween:Play()
+            tween.Completed:Wait()
+            menu.Visible = false
+            settingsPanel.Visible = false
+        else
+            menu.Visible = true
+            local tween = TweenService:Create(menu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0.5, -125, 0.5, -190)
+            })
+            tween:Play()
+        end
+    end
+
+    local function toggleSettings()
+        settingsPanel.Visible = not settingsPanel.Visible
+        toggleSound:Play()
+        print("Settings panel toggled, visible: " .. tostring(settingsPanel.Visible)) -- Отладка
+    end
+
+    openBtn.MouseButton1Click:Connect(toggleMenu)
+    closeBtn.MouseButton1Click:Connect(toggleMenu)
+    settingsBtn.MouseButton1Click:Connect(toggleSettings)
+
+    openBtn.MouseEnter:Connect(function()
+        TweenService:Create(openBtn, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0,
+            Size = UDim2.new(0, 150, 0, 40)
+        }):Play()
+    end)
+
+    openBtn.MouseLeave:Connect(function()
+        TweenService:Create(openBtn, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0.3,
+            Size = UDim2.new(0, 140, 0, 36)
+        }):Play()
+    end)
+
+    settingsBtn.MouseEnter:Connect(function()
+        TweenService:Create(settingsBtn, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0,
+            Size = UDim2.new(0, 28, 0, 28)
+        }):Play()
+    end)
+
+    settingsBtn.MouseLeave:Connect(function()
+        TweenService:Create(settingsBtn, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0.3,
+            Size = UDim2.new(0, 24, 0, 24)
+        }):Play()
+    end)
+
+    local floatingButton = nil
+    local floatingActive = false
+    local floatingStroke = nil
+
+    local function toggleFloatingButton()
+        if floatingButton then
+            floatingButton:Destroy()
+            floatingButton = nil
+            floatingStroke = nil
+            floatingActive = false
+            return
+        end
+
+        floatingActive = true
+        floatingButton = Instance.new("TextButton")
+        floatingButton.Size = UDim2.new(0, 100, 0, 36)
+        floatingButton.Position = UDim2.new(1, -120, 1, -100)
+        floatingButton.AnchorPoint = Vector2.new(1, 1)
+        floatingButton.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+        floatingButton.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+        floatingButton.Font = Enum.Font.SourceSansBold
+        floatingButton.TextSize = 14
+        floatingButton.Text = "Aimbot: " .. (Settings.Aimbot and "ON" or "OFF")
+        floatingButton.Draggable = true
+        floatingButton.Active = true
+        floatingButton.ZIndex = 30
+        floatingButton.Parent = ScreenGui
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = floatingButton
+
+        floatingStroke = Instance.new("UIStroke")
+        floatingStroke.Thickness = 2
+        floatingStroke.Color = Settings.Aimbot and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        floatingStroke.Parent = floatingButton
+
+        floatingButton.MouseButton1Click:Connect(function()
+            Settings.Aimbot = not Settings.Aimbot
+            floatingButton.Text = "Aimbot: " .. (Settings.Aimbot and "ON" or "OFF")
+            floatingStroke.Color = Settings.Aimbot and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            toggleSound:Play()
+        end)
+    end
+
+    local floatBtn = Instance.new("TextButton")
+    floatBtn.Size = UDim2.new(1, 0, 0, 20)
+    floatBtn.Text = "Floating Aim Toggle: OFF"
+    floatBtn.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    floatBtn.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    floatBtn.TextSize = 12
+    floatBtn.Font = Enum.Font.SourceSans
+    floatBtn.ZIndex = 16
+    floatBtn.Parent = settingsContent
+
+    local floatCorner = Instance.new("UICorner")
+    floatCorner.CornerRadius = UDim.new(0, 4)
+    floatCorner.Parent = floatBtn
+
+    floatBtn.MouseButton1Click:Connect(function()
+        toggleFloatingButton()
+        floatBtn.Text = "Floating Aim Toggle: " .. (floatingActive and "ON" or "OFF")
+        toggleSound:Play()
+    end)
+
+    local keyBindContainer = Instance.new("Frame")
+    keyBindContainer.Size = UDim2.new(1, 0, 0, 30)
+    keyBindContainer.BackgroundTransparency = 1
+    keyBindContainer.ZIndex = 16
+    keyBindContainer.Parent = settingsContent
+
+    local keyBindLabel = Instance.new("TextLabel")
+    keyBindLabel.Size = UDim2.new(0.6, 0, 1, 0)
+    keyBindLabel.Text = "Aim Toggle Key: " .. Settings.AimToggleKey
+    keyBindLabel.BackgroundTransparency = 1
+    keyBindLabel.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    keyBindLabel.TextSize = 12
+    keyBindLabel.Font = Enum.Font.SourceSans
+    keyBindLabel.TextXAlignment = Enum.TextXAlignment.Left
+    keyBindLabel.ZIndex = 16
+    keyBindLabel.Parent = keyBindContainer
+
+    local keyBindButton = Instance.new("TextButton")
+    keyBindButton.Size = UDim2.new(0.4, -5, 1, 0)
+    keyBindButton.Position = UDim2.new(0.6, 5, 0, 0)
+    keyBindButton.Text = "Set Key"
+    keyBindButton.BackgroundColor3 = Settings.DayMode and ColorThemes.Light.Button or ColorThemes.Dark.Button
+    keyBindButton.TextColor3 = Settings.DayMode and ColorThemes.Light.Text or ColorThemes.Dark.Text
+    keyBindButton.TextSize = 12
+    keyBindButton.Font = Enum.Font.SourceSans
+    keyBindButton.ZIndex = 16
+    keyBindButton.Parent = keyBindContainer
+
+    local keyBindCorner = Instance.new("UICorner")
+    keyBindCorner.CornerRadius = UDim.new(0, 4)
+    keyBindCorner.Parent = keyBindButton
+
+    keyBindButton.MouseButton1Click:Connect(function()
+        keyBindButton.Text = "Press a key..."
+        local connection
+        connection = UIS.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                local key = input.KeyCode.Name
+                if key ~= "Unknown" then
+                    Settings.AimToggleKey = key
+                    keyBindLabel.Text = "Aim Toggle Key: " .. Settings.AimToggleKey
+                    keyBindButton.Text = "Set Key"
+                    saveSettings()
+                    toggleSound:Play()
+                    connection:Disconnect()
+                end
+            end
+        end)
+    end)
+
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode.Name == Settings.AimToggleKey then
+            Settings.Aimbot = not Settings.Aimbot
+            if floatingButton then
+                floatingButton.Text = "Aimbot: " .. (Settings.Aimbot and "ON" or "OFF")
+                floatingStroke.Color = Settings.Aimbot and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            end
+            for _, btn in ipairs(controlElements.buttons) do
+                if btn.Text:find("Aimbot") then
+                    btn.Text = "Aimbot: " .. (Settings.Aimbot and "ON" or "OFF")
+                end
+            end
+            toggleSound:Play()
+        end
+    end)
+
+    local function updateSettingsPanelSize()
+        local listLayout = settingsContent:FindFirstChildOfClass("UIListLayout")
+        if listLayout then
+            local totalHeight = listLayout.AbsoluteContentSize.Y + 10
+            settingsPanel.Size = UDim2.new(0, 200, 0, totalHeight + 10)
+            print("Settings panel size updated to: " .. tostring(totalHeight + 10)) -- Отладка
+        end
+    end
+
+    settingsContent:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSettingsPanelSize)
+    updateSettingsPanelSize()
+
+    local function updateUITheme()
+        local theme = Settings.DayMode and ColorThemes.Light or ColorThemes.Dark
+        aimCenterWindow.BackgroundColor3 = theme.Background
+        aimStroke.Color = theme.Stroke
+        aimCloseBtn.BackgroundColor3 = theme.TitleBar
+        aimCloseBtn.TextColor3 = theme.Text
+        for _, btn in ipairs(movementGrid:GetChildren()) do
+            if btn:IsA("TextButton") then
+                btn.BackgroundColor3 = theme.Button
+                btn.TextColor3 = theme.Text
+                local btnStroke = btn:FindFirstChildOfClass("UIStroke")
+                if btnStroke then btnStroke.Color = theme.Stroke end
+            end
+        end
+        FeedbackFrame.BackgroundColor3 = theme.Background
+        FeedbackTitle.TextColor3 = theme.Text
+        FeedbackInput.BackgroundColor3 = theme.ValueBackground
+        FeedbackInput.TextColor3 = theme.Text
+        FeedbackStroke.Color = theme.Stroke
+        SendFeedbackButton.BackgroundColor3 = theme.Button
+        SendFeedbackButton.TextColor3 = theme.Text
+        feedbackBtn.BackgroundColor3 = theme.Button
+        feedbackBtn.TextColor3 = theme.Text
+    end
+
+    updateUITheme()
+
+    settingsContent.DescendantAdded:Connect(function()
+        updateSettingsPanelSize()
+        print("New element added to settingsContent, updating panel size") -- Отладка
+    end)
+
+    LocalPlayer.CharacterRemoving:Connect(function()
+        aimDot.Visible = false
+        fovCircle.Visible = false
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then
+                local highlight = p.Character:FindFirstChild("Totally NOT Esp")
+                if highlight then highlight:Destroy() end
+                local icon = p.Character:FindFirstChild("Icon")
+                if icon then icon:Destroy() end
+            end
+        end
+    end)
+
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            if Settings.Esp then
+                local HRP = character:WaitForChild("HumanoidRootPart", 5)
+                if HRP and not character:FindFirstChild("Totally NOT Esp") and (not Settings.TeamCheck or player.TeamColor ~= LocalPlayer.TeamColor) then
+                    local ESP = Instance.new("Highlight")
+                    ESP.Name = "Totally NOT Esp"
+                    ESP.Adornee = character
+                    ESP.Enabled = true
+                    ESP.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    ESP.FillColor = player.TeamColor.Color
+                    ESP.FillTransparency = 0.5
+                    ESP.OutlineColor = Settings.DayMode and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+                    ESP.OutlineTransparency = 0
+                    ESP.Parent = character
+
+                    local Icon = Instance.new("BillboardGui")
+                    Icon.Name = "Icon"
+                    Icon.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                    Icon.Active = true
+                    Icon.AlwaysOnTop = true
+                    Icon.ExtentsOffset = Vector3.new(0, 1, 0)
+                    Icon.LightInfluence = 1
+                    Icon.Size = UDim2.new(0, 200, 0, 50)
+                    Icon.Parent = character
+
+                    local ESPText = Instance.new("TextLabel")
+                    ESPText.Name = "ESP Text"
+                    ESPText.Parent = Icon
+                    ESPText.BackgroundColor3 = player.TeamColor.Color
+                    ESPText.BackgroundTransparency = 1
+                    ESPText.Size = UDim2.new(1, 0, 1, 0)
+                    ESPText.Font = Enum.Font.SciFi
+                    ESPText.Text = player.Name .. " | Distance: Calculating..."
+                    ESPText.TextColor3 = Settings.DayMode and Color3.fromRGB(0, 0, 0) or player.TeamColor.Color
+                    ESPText.TextSize = 10
+                    ESPText.TextWrapped = true
+                end
+            end
+        end)
+    end)
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            player.CharacterAdded:Connect(function(character)
+                if Settings.Esp then
+                    local HRP = character:WaitForChild("HumanoidRootPart", 5)
+                    if HRP and not character:FindFirstChild("Totally NOT Esp") and (not Settings.TeamCheck or player.TeamColor ~= LocalPlayer.TeamColor) then
+                        local ESP = Instance.new("Highlight")
+                        ESP.Name = "Totally NOT Esp"
+                        ESP.Adornee = character
+                        ESP.Enabled = true
+                        ESP.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        ESP.FillColor = player.TeamColor.Color
+                        ESP.FillTransparency = 0.5
+                        ESP.OutlineColor = Settings.DayMode and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+                        ESP.OutlineTransparency = 0
+                        ESP.Parent = character
+
+                        local Icon = Instance.new("BillboardGui")
+                        Icon.Name = "Icon"
+                        Icon.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                        Icon.Active = true
+                        Icon.AlwaysOnTop = true
+                        Icon.ExtentsOffset = Vector3.new(0, 1, 0)
+                        Icon.LightInfluence = 1
+                        Icon.Size = UDim2.new(0, 200, 0, 50)
+                        Icon.Parent = character
+
+                        local ESPText = Instance.new("TextLabel")
+                        ESPText.Name = "ESP Text"
+                        ESPText.Parent = Icon
+                        ESPText.BackgroundColor3 = player.TeamColor.Color
+                        ESPText.BackgroundTransparency = 1
+                        ESPText.Size = UDim2.new(1, 0, 1, 0)
+                        ESPText.Font = Enum.Font.SciFi
+                        ESPText.Text = player.Name .. " | Distance: Calculating..."
+                        ESPText.TextColor3 = Settings.DayMode and Color3.fromRGB(0, 0, 0) or player.TeamColor.Color
+                        ESPText.TextSize = 10
+                        ESPText.TextWrapped = true
+                    end
+                end
+            end)
+            if player.Character then
+                player:CharacterAdded(player.Character)
+            end
+        end
+    end
+
+    local function updateSettingsPanelSize()
+        local listLayout = settingsContent:FindFirstChildOfClass("UIListLayout")
+        if listLayout then
+            local totalHeight = listLayout.AbsoluteContentSize.Y + 10
+            settingsPanel.Size = UDim2.new(0, 200, 0, totalHeight + 10)
+            print("Settings panel size updated to: " .. tostring(totalHeight + 10))
+        end
+    end
+
+    settingsContent:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSettingsPanelSize)
+    updateSettingsPanelSize()
+
+end)
+
+if not success then
+    warn("Error in script execution: " .. err)
+end
